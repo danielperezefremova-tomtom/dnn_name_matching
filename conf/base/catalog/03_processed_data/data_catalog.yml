@@ -1,0 +1,3 @@
+vocabulary_file:
+  type: json.JSONDataSet
+  filepath: data/05_model_input/${run_id}/vocabulary/vocab.json

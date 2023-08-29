@@ -1,0 +1,15 @@
+run_id: 20230901-test-0001
+models_path: data/06_models/${run_id}
+temporal_path: data/tmp
+intermediate_data_path: data/02_intermediate
+
+country: ind
+provider: om
+sample_round: cc
+
+has_custom_credentials: True
+database: ""
+port: ""
+user: ""
+host: '10.137.173.68'
+password: ""

@@ -1,0 +1,17 @@
+{
+	"name": "Existing Docker Compose (Extend)",
+
+	"dockerComposeFile": [
+		"../docker-compose.yml",
+		"docker-compose.yml"
+	],
+
+	"service": "string_matching_dnn",
+	"workspaceFolder": "/workspace", 
+	"extensions": [
+		"mhutchie.git-graph",
+		"ms-python.python",
+		"njpwerner.autodocstring",
+		"perkovec.emoji"	
+	]
+}

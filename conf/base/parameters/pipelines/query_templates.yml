@@ -1,0 +1,72 @@
+om_data_query: |
+  SELECT osm_id::text as reference_id,
+  brand,
+  name,
+  tags->'alt_name' as alt_name,
+  tags, 
+  ST_Y(ST_centroid(way)) AS latitude,
+  ST_X(ST_centroid(way)) AS longitude,
+  '{country}' as country,
+  array_remove(
+      array[
+            CASE WHEN barrier is not NULL THEN concat('barrier=',barrier) ELSE NULL end,
+            CASE WHEN office is not NULL THEN concat('office=',office) ELSE NULL end,
+            CASE WHEN railway  is not NULL THEN concat('railway=',railway) ELSE NULL end,
+            CASE WHEN shop is not NULL THEN concat('shop=',shop) ELSE NULL end,
+            CASE WHEN leisure is not NULL THEN concat('leisure=',leisure) ELSE NULL end,
+            CASE WHEN amenity is not NULL THEN concat('amenity=',amenity) ELSE NULL end,
+            CASE WHEN highway is not NULL THEN concat('highway=',highway) ELSE NULL end,
+            CASE WHEN "natural" is not NULL THEN concat('natural=',"natural") ELSE NULL end,
+            CASE WHEN aeroway is not NULL THEN concat('aeroway=',aeroway) ELSE NULL end,
+            CASE WHEN military is not NULL THEN concat('military=',military) ELSE NULL end,
+            CASE WHEN man_made is not NULL THEN concat('man_made=',man_made) ELSE NULL end,
+            CASE WHEN tourism is not NULL THEN concat('tourism=',tourism) ELSE NULL end,
+            CASE WHEN aerialway is not NULL THEN concat('aerialway=',aerialway) ELSE NULL end,
+            CASE WHEN boundary is not NULL THEN concat('boundary=',boundary) ELSE NULL end,
+            CASE WHEN landuse is not NULL THEN concat('landuse=',landuse) ELSE NULL end,
+            CASE WHEN historic is not NULL THEN concat('historic=',historic) ELSE NULL end,
+            CASE WHEN public_transport is not NULL THEN concat('public_transport=',public_transport) ELSE NULL end,
+            CASE WHEN place is not NULL THEN concat('place=',place) ELSE NULL end,
+            CASE WHEN defined(tags, 'barrier') THEN concat('barrier=',tags->'barrier') ELSE NULL end,
+            CASE WHEN defined(tags, 'office') THEN concat('office=',tags->'office') ELSE NULL end,
+            CASE WHEN defined(tags, 'railway') THEN concat('railway=',tags->'railway') ELSE NULL end,
+            CASE WHEN defined(tags, 'mountain_pass') THEN concat('mountain_pass=',tags->'mountain_pass') ELSE NULL end,
+            CASE WHEN defined(tags, 'shop') THEN concat('shop=',tags->'shop') ELSE NULL end,
+            CASE WHEN defined(tags, 'leisure') THEN concat('leisure=',tags->'leisure') ELSE NULL end,
+            CASE WHEN defined(tags, 'amenity') THEN concat('amenity=',tags->'amenity') ELSE NULL end,
+            CASE WHEN defined(tags, 'utility') THEN concat('utility=',tags->'utility') ELSE NULL end,
+            CASE WHEN defined(tags, 'highway') THEN concat('highway=',tags->'highway') ELSE NULL end,
+            CASE WHEN defined(tags, 'natural') THEN concat('natural=',tags->'natural') ELSE NULL end,
+            CASE WHEN defined(tags, 'aeroway') THEN concat('aeroway=',tags->'aeroway') ELSE NULL end,
+            CASE WHEN defined(tags, 'military') THEN concat('military=',tags->'military') ELSE NULL end,
+            CASE WHEN defined(tags, 'craft') THEN concat('craft=',tags->'craft') ELSE NULL end,
+            CASE WHEN defined(tags, 'man_made') THEN concat('man_made=',tags->'man_made') ELSE NULL end,
+            CASE WHEN defined(tags, 'tourism') THEN concat('tourism=',tags->'tourism') ELSE NULL end,
+            CASE WHEN defined(tags, 'aerialway') THEN concat('aerialway=',tags->'aerialway') ELSE NULL end,
+            CASE WHEN defined(tags, 'emergency') THEN concat('emergency=',tags->'emergency') ELSE NULL end,
+            CASE WHEN defined(tags, 'ford') THEN concat('ford=',tags->'ford') ELSE NULL end,
+            CASE WHEN defined(tags, 'geological') THEN concat('geological=',tags->'geological') ELSE NULL end,
+            CASE WHEN defined(tags, 'healthcare') THEN concat('healthcare=',tags->'healthcare') ELSE NULL end,
+            CASE WHEN defined(tags, 'club') THEN concat('club=',tags->'club') ELSE NULL end,
+            CASE WHEN defined(tags, 'boundary') THEN concat('boundary=',tags->'boundary') ELSE NULL end,
+            CASE WHEN defined(tags, 'landuse') THEN concat('landuse=',tags->'landuse') ELSE NULL end,
+            CASE WHEN defined(tags, 'historic') THEN concat('historic=',tags->'historic') ELSE NULL end,
+            CASE WHEN defined(tags, 'public_transport') THEN concat('public_transport=',tags->'public_transport') ELSE NULL end,
+            CASE WHEN defined(tags, 'place') THEN concat('place=',tags->'place') ELSE NULL end]
+            , NULL) AS category_fields 
+  FROM {schema}.planet_osm_point pop
+  WHERE name IS NOT NULL AND name <> '' and tags->'alt_name' is not null
+  ORDER BY RANDOM()
+  LIMIT {pois_number}
+
+om_schema_query: |
+  SELECT 
+      schema_name
+  FROM 
+      information_schema.schemata
+  WHERE
+      schema_name LIKE '%\_{country}'
+  LIMIT 1
+
+
+pois_number: 50000

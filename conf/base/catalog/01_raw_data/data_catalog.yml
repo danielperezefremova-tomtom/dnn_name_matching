@@ -1,0 +1,10 @@
+# df_input:
+#   type: IncrementalDataSet
+#   dataset:
+#     type: spark.SparkDataSet
+#     file_format: csv
+#     load_args:
+#       header: True
+#       inferSchema: True
+#   path: data/01_raw/tomtom/orbis/alt_names
+#   filename_suffix: ".csv"

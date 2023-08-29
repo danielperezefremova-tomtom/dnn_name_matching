@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  string_matching_dnn:
+    build:
+      context: .
+      dockerfile: environment/Dockerfile
+      network: "host"
+    tty: true
+    user: vscode
+    network_mode: "host"
