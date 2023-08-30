@@ -6,7 +6,8 @@ from .nodes import  (
                      load_query_schema,
                      get_schema_name,
                      build_poi_spatial_query,
-                     get_response
+                     get_response,
+                     generate_train_test_split
                     )
 
 
@@ -60,6 +61,13 @@ def create_pipeline(**kwargs) -> Pipeline:
                 outputs="df_negative_pairs",
                 name="generate_negative_examples",
             ),
+            node(
+                func=generate_train_test_split,
+                inputs=["df_normalized_pairs", "df_negative_pairs", "parameters"],
+                outputs=["train", "test", "validation"],
+                name="generate_train_test_split",
+            ),
+            
             
         ]
     )

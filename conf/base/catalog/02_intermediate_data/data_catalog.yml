@@ -17,7 +17,9 @@ df_negative_pairs:
   file_format: parquet
   save_args:
     header: True
+    partitionOverwriteMode: dynamic
     mode: overwrite
+    partitionBy: [ "run_id", "country" ]
   load_args:
     header: True
     infer_schema: True

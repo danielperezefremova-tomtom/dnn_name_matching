@@ -3,7 +3,7 @@ models_path: data/06_models/${run_id}
 temporal_path: data/tmp
 intermediate_data_path: data/02_intermediate
 
-country: ind
+country: deu
 provider: om
 sample_round: cc
 

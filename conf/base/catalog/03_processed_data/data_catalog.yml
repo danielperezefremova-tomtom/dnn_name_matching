@@ -1,3 +1,15 @@
 vocabulary_file:
   type: json.JSONDataSet
   filepath: data/05_model_input/${run_id}/vocabulary/vocab.json
+
+train:
+  type: pandas.CSVDataSet
+  filepath: data/05_model_input/${run_id}/train.csv
+
+test:
+  type: pandas.CSVDataSet
+  filepath: data/05_model_input/${run_id}/test.csv
+
+validation:
+  type: pandas.CSVDataSet
+  filepath: data/05_model_input/${run_id}/validation.csv
