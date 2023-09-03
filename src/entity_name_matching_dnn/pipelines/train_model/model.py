@@ -19,7 +19,7 @@ def encode_sparsed_list(iterable: iter, char_to_index_dict: dict, max_len: int) 
     
     return np.array([sparse_encoder(string, char_to_index_dict, max_len) for string in iterable])
 
-def get_conv_pool(x_input, max_len, suffix, n_grams=[2,3,5,8,13], feature_maps=128):
+def get_conv_pool(x_input, max_len, suffix, n_grams=[2,3,5,8, 13], feature_maps=128):
     branches = []
     for n in n_grams:
         branch = tf.keras.layers.Conv1D(filters=feature_maps, kernel_size=n, activation=relu,
@@ -47,31 +47,25 @@ class char2vecCNN:
             shape=self.input_size,
             name='input_sequence')
         
-        x = tf.keras.layers.Embedding(
-            input_dim=self.vocabulary_size,
+        sequences_embeding = tf.keras.layers.Embedding(
+            input_dim=self.input_size,
             output_dim=self.embedding_dim,
             mask_zero=True
             )(input_sequence)
         
-        self.embedding_layer = tf.keras.models.Model(
-            inputs=[input_sequence],
-            outputs=x
-            )
-
-        sequences_embeding = self.embedding_layer(input_sequence)
-        
         convolution_branches = get_conv_pool(sequences_embeding, max_len=100, suffix='ngrams')
-        convolution_vectors = concatenate(convolution_branches, axis=-1)
-        self.convolutions_layer = tf.keras.models.Model(
+        concat_convolutions = concatenate(convolution_branches, axis=-1)
+        
+        self.features_layer = tf.keras.models.Model(
             inputs=[input_sequence],
-            outputs=convolution_vectors
+            outputs=concat_convolutions
             )
 
         left_branch_input = tf.keras.layers.Input(shape=(self.input_size, 1), name='left_branch_input')
         right_branch_input = tf.keras.layers.Input(shape=(self.input_size, 1),name='right_branch_input')
 
-        left_branch_features = self.convolutions_layer(left_branch_input)
-        right_branch_features = self.convolutions_layer(right_branch_input)
+        left_branch_features = self.features_layer(left_branch_input)
+        right_branch_features = self.features_layer(right_branch_input)
 
         product_layer = tf.keras.layers.Multiply()(
             [left_branch_features, right_branch_features]
@@ -92,11 +86,11 @@ class char2vecCNN:
         x = tf.keras.layers.Dropout(0.4)(x)
         x = tf.keras.layers.Dense(1024, activation='relu')(x)
 
-        model_output = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+        output = tf.keras.layers.Dense(1, activation='sigmoid')(x)
         
         self.model = tf.keras.models.Model(
             inputs=[left_branch_input, right_branch_input],
-            outputs=model_output
+            outputs=output
             )
         
         self.model.compile(
@@ -117,7 +111,6 @@ class char2vecCNN:
         callbacks):
         
         #TODO: Find a more elegant way of data preparation (keras loaders?)
-        print(training_pairs)
         X1 = self.vectorize(training_pairs[0])
         X2 = self.vectorize(training_pairs[1])
 

@@ -10,19 +10,10 @@ df_normalized_pairs:
   load_args:
     header: True
     infer_schema: True
-
-df_negative_pairs:
-  type: spark.SparkDataSet
-  filepath: data/02_intermediate/${run_id}/negative_examples
-  file_format: parquet
-  save_args:
-    header: True
-    partitionOverwriteMode: dynamic
-    mode: overwrite
-    partitionBy: [ "run_id", "country" ]
-  load_args:
-    header: True
-    infer_schema: True
+    
+df_training_data:
+  type: pandas.CSVDataSet
+  filepath: data/02_intermediate/${run_id}/training_data.csv
 
 query_schema:
   type: text.TextDataSet

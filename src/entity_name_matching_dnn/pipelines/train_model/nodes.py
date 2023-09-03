@@ -107,7 +107,7 @@ def train_model(X1_train: np.array,
     ax[1].set_title('Accuracy history')
     ax[1].legend(['Train accuracy', 'Validation accuracy'],
                  loc='upper right')
-
+    plt.show()
     plt.close()
 
     return model, fig
@@ -121,6 +121,9 @@ def evaluate_model(
 
     prediction_params = parameters['model_parameters']['prediction']
     threshold = prediction_params['threshold']
+
+    X1_test = model.vectorize(X1_test)
+    X2_test = model.vectorize(X2_test)
 
     pred = model.predict((X1_test, X2_test)).flatten()
     pred = pred > threshold

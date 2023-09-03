@@ -83,28 +83,27 @@ def compute_chars_vocabulary(df: pyspark.sql.DataFrame
 
     return char_to_index
 
-def get_similar_neg_examples(df: pyspark.sql.DataFrame
-                               ) -> pyspark.sql.DataFrame:
-
-    udf_token_set_ratio = udf(fuzz.token_set_ratio)
-    w = Window().partitionBy(lit('country')).orderBy(lit('country'))
-
-    df_indexed = df.withColumn("index", row_number().over(w))
-    df_name = df_indexed.select('name_normalized', 'index')
-    df_alt_name = df_indexed.select('alt_name_normalized').orderBy(rand()).withColumn("index", row_number().over(w))
-
-    df_neg_examples = df_name.join(df_alt_name, on='index')
-    df_neg_examples = df_neg_examples.withColumn('similarity_score', udf_token_set_ratio(col('name_normalized'), col('alt_name_normalized')))
-    # df_neg_examples = df_neg_examples.filter((col('similarity_score')>50) & (col('similarity_score')<100))
-
-    return df_neg_examples
-
-def generate_neg_examples(df: pyspark.sql.DataFrame
+def generate_training_examples(df: pyspark.sql.DataFrame
                                ) -> pyspark.sql.DataFrame:
     
     #TODO: Implement more sophisticated negative examples
-    
-    return df
+
+    positive_examples = df.toPandas()
+    positive_examples['target'] = 1
+
+    negative_examples = positive_examples.copy()
+    negative_examples['target'] = 0
+
+    np.random.seed(0)
+    indexes = positive_examples.index.tolist()
+    np.random.shuffle(indexes)
+
+    negative_examples['alt_name'] = positive_examples.loc[indexes, 'alt_name'].values
+    negative_examples['alt_name_normalized'] = positive_examples.loc[indexes, 'alt_name_normalized'].values
+
+    training_data = pd.concat([positive_examples, negative_examples], axis=0)
+
+    return training_data
 
 def load_query_schema(parameters: typing.Dict) -> str:
     """
@@ -183,8 +182,7 @@ def get_response(df_response: typing.Dict[str, pyspark.sql.DataFrame],
     return df_response
 
 
-def generate_train_test_split(df_positive_examples: pyspark.sql.DataFrame,
-                                df_negative_examples:pyspark.sql.DataFrame,
+def generate_train_test_split(df: pd.DataFrame,
                                  parameters:dict
                                  ) -> np.array:
     
@@ -193,14 +191,8 @@ def generate_train_test_split(df_positive_examples: pyspark.sql.DataFrame,
     stratification_columns = split_params['stratification_columns']
     validation_size = split_params['validation_size']
 
-    df_positives = df_positive_examples.withColumn('target', lit(1))
-    df_negatives = df_negative_examples.withColumn('target', lit(0))
-    df_training = df_positives.unionByName(df_negatives)
-
-    training_data = df_training.toPandas()
-
-    train_split = training_data.groupby(stratification_columns).apply(lambda x: x.sample(frac=1-test_size))
-    test_split = training_data.loc[set(training_data.index) - set(train_split.index.get_level_values(1))]
+    train_split = df.groupby(stratification_columns).apply(lambda x: x.sample(frac=1-test_size))
+    test_split = df.loc[set(df.index) - set(train_split.index.get_level_values(1))]
 
     validation_split = test_split.groupby(stratification_columns).apply(lambda x: x.sample(frac=1-validation_size))
     train_split = train_split.loc[set(train_split.index) - set(validation_split.index.get_level_values(1))]

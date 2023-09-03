@@ -17,10 +17,9 @@ class TensorflowModelFile(AbstractDataSet):
 
         self.filepath = filepath
 
-        self._load_args = dict(custom_objects=None,
-                               compile=True)
+        self._load_args = dict()
 
-        self._save_args = dict(overwrite=True,
+        self._save_args = dict(
                                save_format='keras'
                                )
 

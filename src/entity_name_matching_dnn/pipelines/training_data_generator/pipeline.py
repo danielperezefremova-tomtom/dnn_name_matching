@@ -2,7 +2,7 @@ from kedro.pipeline import Pipeline, node, pipeline
 from .nodes import  (
                      normalize_strings,
                      compute_chars_vocabulary,
-                     generate_neg_examples,
+                     generate_training_examples,
                      load_query_schema,
                      get_schema_name,
                      build_poi_spatial_query,
@@ -56,14 +56,14 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="compute_vocabulary",
             ),
             node(
-                func=generate_neg_examples,
+                func=generate_training_examples,
                 inputs=["df_normalized_pairs"],
-                outputs="df_negative_pairs",
-                name="generate_negative_examples",
+                outputs="df_training_data",
+                name="generate_examples",
             ),
             node(
                 func=generate_train_test_split,
-                inputs=["df_normalized_pairs", "df_negative_pairs", "parameters"],
+                inputs=["df_training_data", "parameters"],
                 outputs=["train", "test", "validation"],
                 name="generate_train_test_split",
             ),
