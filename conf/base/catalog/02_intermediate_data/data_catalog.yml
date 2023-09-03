@@ -49,7 +49,7 @@ df_response:
 
 df_raw_names_sample:
   type: spark.SparkDataSet
-  filepath: ${intermediate_data_path}/raw_names_sample
+  filepath: ${intermediate_data_path}/${run_id}/raw_names_sample
   file_format: parquet
   save_args:
     header: True

@@ -13,3 +13,29 @@ test:
 validation:
   type: pandas.CSVDataSet
   filepath: data/05_model_input/${run_id}/validation.csv
+
+tensorflow_model:
+  type: entity_name_matching_dnn.extras.datasets.tensorflow_model_dataset.TensorflowModelFile
+  filepath: data/06_models/${run_id}/char2vecCNN.keras
+
+training_history_loss:
+  type: matplotlib.MatplotlibWriter
+  filepath: data/08_reporting/${run_id}/training_history_loss.png
+  save_args:
+    format: png
+
+confussion_matrix_model:
+  type: matplotlib.MatplotlibWriter
+  filepath: data/08_reporting/${run_id}/confussion_matrix_model.png
+  save_args:
+    format: png
+
+confussion_matrix_validation:
+  type: matplotlib.MatplotlibWriter
+  filepath: data/08_reporting/${run_id}/confussion_matrix_validation.png
+  save_args:
+    format: png
+
+classification_logs:
+  type: pandas.CSVDataSet
+  filepath: data/08_reporting/${run_id}/classification_logs.csv

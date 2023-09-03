@@ -1,0 +1,10 @@
+model_parameters:
+  init:
+    embeding_size: 150
+    input_size: 100
+  fit:
+    max_epochs: 5
+    patience: 2
+    batch_size: 256
+  prediction:
+    threshold: 0.5

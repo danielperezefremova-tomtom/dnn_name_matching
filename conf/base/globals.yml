@@ -1,9 +1,9 @@
-run_id: 20230901-test-0001
+run_id: 20230901-test-0005
 models_path: data/06_models/${run_id}
 temporal_path: data/tmp
 intermediate_data_path: data/02_intermediate
 
-country: deu
+country: esp
 provider: om
 sample_round: cc
 
@@ -11,5 +11,5 @@ has_custom_credentials: True
 database: ""
 port: ""
 user: ""
-host: '10.137.173.68'
+host: '10.137.173.69'
 password: ""

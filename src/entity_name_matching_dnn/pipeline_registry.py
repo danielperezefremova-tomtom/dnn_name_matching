@@ -16,5 +16,6 @@ def register_pipelines() -> Dict[str, Pipeline]:
     
     return {
         'generate_training_data': generate_training_data(),
+        'train_model': train_model(),
     }
 

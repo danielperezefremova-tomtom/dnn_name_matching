@@ -22,188 +22,127 @@ import logging
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from .model import char2vecCNN
+from keras.callbacks import History
+import matplotlib.pyplot as plt
+from sklearn.metrics import (confusion_matrix,
+                            ConfusionMatrixDisplay)
 
-logger = logging.getLogger("kedro")
+plt.style.use('ggplot')
 
-
-def normalize_characters(text: str) -> str:
+def load_data(train_data: pd.DataFrame,
+              test_data: pd.DataFrame,
+            validation_data: pd.DataFrame,
+            vocabulary: dict):
     
-    if text is None:
-        return ''
+    char_to_index = vocabulary
 
-    strange_char_space = r"!#$%&()*+,./:;<=>?@[\]^_{|}~ºª®-"
-    char_2_remove = "\"'^`"
-    space_mask = "                                "
-    punctuation_table = str.maketrans(strange_char_space, space_mask,
-                                        char_2_remove)
-    text = text.lower()
-    text = text.strip()
-    # text = unidecode(text)
-    text = text.translate(punctuation_table)
-    text = re.sub(r' +', ' ', text)
-    text = text.strip()
-    text = text.lower()
+    X1_train = train_data['name_normalized'].values
+    X2_train = train_data['alt_name_normalized'].values
+    target_train = train_data['target'].values
 
-    return text
+    X1_val = validation_data['name_normalized'].values
+    X2_val = validation_data['alt_name_normalized'].values
+    target_val = validation_data['target'].values
 
-def normalize_strings(df: pyspark.sql.DataFrame
-              ) -> pyspark.sql.DataFrame:
+    X1_test = test_data['name_normalized'].values
+    X2_test = test_data['alt_name_normalized'].values
+    target_test = test_data['target'].values
+
+    return [X1_train,
+            X2_train,
+            target_train,
+            X1_val,
+            X2_val,
+            target_val,
+            X1_test,
+            X2_test,
+            target_test,
+            char_to_index]
+
+def train_model(X1_train: np.array,
+        X2_train: np.array,
+        target_train: np.array,
+        X1_val: np.array,
+        X2_val: np.array,
+        target_val: np.array,
+        char_to_index: dict,
+        parameters: dict):
+
+    init_parameters = parameters['model_parameters']['init']
+
+    model = char2vecCNN(
+        input_size=init_parameters['input_size'],
+        embedding_dim = init_parameters['input_size'],
+        char_to_index = char_to_index)
     
-    udf_normalize_chars = udf(normalize_characters)
-    df_transformed = df.withColumn('name_normalized', udf_normalize_chars(col('name'))) \
-                        .withColumn('alt_name_normalized', udf_normalize_chars(col('alt_name')))
+    fit_parameters = parameters['model_parameters']['fit']
+    history = History()
 
-    return df_transformed
-
-def get_unique_characters(string: str
-                          ) -> list:
-    
-    unique_characters = list(set(string)) if isinstance(string, str) else []
-    return unique_characters
-
-def compute_chars_vocabulary(df: pyspark.sql.DataFrame
-                          ) -> dict:
-
-    udf_get_unique_characters = udf(get_unique_characters, ArrayType(StringType()))
-    df_transformed = df.withColumn('unique_characters_name', udf_get_unique_characters(col('name_normalized'))) \
-                        .withColumn('unique_characters_alt_name', udf_get_unique_characters(col('alt_name_normalized'))) \
-                        .withColumn('unique_row_characters', array_distinct(concat(col('unique_characters_name'), col('unique_characters_alt_name'))))
-    
-    df_aggregated = df_transformed.groupBy().agg(
-    array_distinct(flatten(collect_set(col('unique_row_characters')))).alias('char_list')
-    )
-    
-    chracters_list =  df_aggregated.rdd.map(lambda x: x.char_list).collect()[0]
-    char_to_index = {char: index+1 for index, char in enumerate(chracters_list)} # 0 index is reserved for padding
-
-    return char_to_index
-
-def get_similar_neg_examples(df: pyspark.sql.DataFrame
-                               ) -> pyspark.sql.DataFrame:
-
-    udf_token_set_ratio = udf(fuzz.token_set_ratio)
-    w = Window().partitionBy(lit('country')).orderBy(lit('country'))
-
-    df_indexed = df.withColumn("index", row_number().over(w))
-    df_name = df_indexed.select('name_normalized', 'index')
-    df_alt_name = df_indexed.select('alt_name_normalized').orderBy(rand()).withColumn("index", row_number().over(w))
-
-    df_neg_examples = df_name.join(df_alt_name, on='index')
-    df_neg_examples = df_neg_examples.withColumn('similarity_score', udf_token_set_ratio(col('name_normalized'), col('alt_name_normalized')))
-    # df_neg_examples = df_neg_examples.filter((col('similarity_score')>50) & (col('similarity_score')<100))
-
-    return df_neg_examples
-
-def generate_neg_examples(df: pyspark.sql.DataFrame
-                               ) -> pyspark.sql.DataFrame:
-    
-    #TODO: Implement more sophisticated negative examples
-    
-    return df
-
-def load_query_schema(parameters: typing.Dict) -> str:
-    """
-        Read '[orbis|genesis]_schema_query' parameter in queries.yml. Then format it with
-        country defined in superfluous_pois.yml
-        Parameters
-            parameters (Dict): Parameters dictionary
-        Returns:
-            query (str): query formatted with the country
-    """
-    provider = parameters["provider"]
-    schema_query = parameters["query_parameters"][provider]["schema_query"]
-    query = parameters[schema_query].format(country=parameters["country"].lower())
-    logger.info(query)
-    return query
-
-def get_schema_name(df_dict, query_schema: str, parameters: typing.Dict) -> str:
-    """
-        Extract country schema in the input dataframe for a given country
-        Parameters
-            df_dict (Dict[str, DataFrame]): spark dataframe containing the result of
-                executing the query '[orbis|genesis]_schema_query' against the server
-            query_schema (str): dummy string to ensure that this node is executed after the previous one.
-            parameters (Dict): parameters dictionary
-        Returns:
-            schema (str): schema name in the database for the country defined in parameters. It can be a
-            comma separated string if the country has more than one schema (usa and canada for genesis)
-    """
-    country = parameters["country"]
-    rows = df_dict['query'].collect()
-
-    if rows:
-        schemas = list(map(lambda row: row["schema_name"], rows))
-        schema = ','.join(schemas)
-        logger.info(f"Available schemas: {schemas}")
-        logger.info(f"Selected schema (comma separated): {schema}")
-        return schema
-    else:
-        raise RuntimeError(f"Schema not found for country '{country}'")
-
-def build_poi_spatial_query(
-    schemas: str,
-    parameters: dict,
-) -> str:
-    
-    country = parameters['country']
-    provider = parameters["provider"]
-    pois_number = parameters["pois_number"]
-
-    
-    data_query = parameters["query_parameters"][provider]["data_query"]
-    query_template = parameters[data_query]
-
-    spatial_query = query_template.format(
-        country = country,
-        schema = schemas,
-        pois_number = pois_number
+    model.fit(
+        training_pairs=(X1_train, X2_train),
+        target=target_train,
+        max_epochs=fit_parameters['max_epochs'],
+        patience=fit_parameters['patience'],
+        validation_pairs=((X1_val, X2_val), (target_val)),
+        batch_size=fit_parameters['batch_size'],
+        callbacks=[history]
     )
 
-    return spatial_query
+    train_loss = history.history['loss']
+    val_loss = history.history['loss']
+    train_acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
 
-def unionAll(*dfs):
-    return reduce(pyspark.sql.DataFrame.unionAll, dfs)
+    fig, ax = plt.subplots(1, 2, figsize=(10,5))
 
-def get_response(df_response: typing.Dict[str, pyspark.sql.DataFrame],
-                                dummy_input,
-                                parameters:dict) -> pyspark.sql.DataFrame:
+    ax[0].plot(train_loss)
+    ax[0].plot(val_loss)
+    ax[0].set_title('Loss history')
+    ax[0].legend(['Train loss', 'Validation loss'],
+                 loc='upper right')
 
-    run_id = parameters['run_id']
-    df_response = unionAll(
-            *[df for df in df_response.values()]
-            )
-    
-    df_response = df_response.withColumn('run_id', lit(run_id))
-    
-    return df_response
+    ax[1].plot(train_acc)
+    ax[1].plot(val_acc)
+    ax[1].set_title('Accuracy history')
+    ax[1].legend(['Train accuracy', 'Validation accuracy'],
+                 loc='upper right')
 
+    plt.close()
 
-def generate_train_test_split(df_positive_examples: pyspark.sql.DataFrame,
-                                df_negative_examples:pyspark.sql.DataFrame,
-                                 parameters:dict
-                                 ) -> np.array:
-    
-    split_params = parameters['split_params']
-    test_size = split_params['test_size']
-    stratification_columns = split_params['stratification_columns']
-    validation_size = split_params['validation_size']
+    return model, fig
 
-    df_positives = df_positive_examples.withColumn('target', lit(1))
-    df_negatives = df_negative_examples.withColumn('target', lit(0))
-    df_training = df_positives.unionByName(df_negatives)
+def evaluate_model(
+    model, 
+    X1_test: np.array,
+    X2_test: np.array,
+    target_test: np.array,
+    parameters: dict):
 
-    training_data = df_training.toPandas()
+    prediction_params = parameters['model_parameters']['prediction']
+    threshold = prediction_params['threshold']
 
-    train_split = training_data.groupby(stratification_columns).apply(lambda x: x.sample(frac=1-test_size))
-    test_split = training_data.loc[set(training_data.index) - set(train_split.index.get_level_values(1))]
+    pred = model.predict((X1_test, X2_test)).flatten()
+    pred = pred > threshold
 
-    validation_split = test_split.groupby(stratification_columns).apply(lambda x: x.sample(frac=1-validation_size))
-    train_split = train_split.loc[set(train_split.index) - set(validation_split.index.get_level_values(1))]
+    pred_baseline = np.array([fuzz.token_set_ratio(X1, X2) for X1, X2 in (X1_test, X2_test)])
+    pred_baseline = pred_baseline>.75
 
-    return train_split, test_split, validation_split
-    
+    true = target_test.flatten()
+    true = true > threshold
 
+    cm_model = confusion_matrix(true, pred)
+    disp_model = ConfusionMatrixDisplay(confusion_matrix=cm_model)
+    plt.close()
 
+    cm_baseline= confusion_matrix(true, pred_baseline)
+    disp_baseline = ConfusionMatrixDisplay(confusion_matrix=cm_baseline)
+    plt.close()
+
+    classification_log = pd.DataFrame(list(zip(X1_test, X2_test, true, pred, pred_baseline)), 
+                                      columns=['name', 'alt_name', 'target', 'model_prediction', 'edit_prediction'])
+
+    return disp_model.figure_, disp_baseline.figure_, classification_log
 
 
 

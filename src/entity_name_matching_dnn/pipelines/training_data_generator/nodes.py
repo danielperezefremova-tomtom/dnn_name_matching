@@ -38,7 +38,7 @@ def normalize_characters(text: str) -> str:
                                         char_2_remove)
     text = text.lower()
     text = text.strip()
-    # text = unidecode(text)
+    text = unidecode(text)
     text = text.translate(punctuation_table)
     text = re.sub(r' +', ' ', text)
     text = text.strip()
@@ -52,8 +52,13 @@ def normalize_strings(df: pyspark.sql.DataFrame
     udf_normalize_chars = udf(normalize_characters)
     df_transformed = df.withColumn('name_normalized', udf_normalize_chars(col('name'))) \
                         .withColumn('alt_name_normalized', udf_normalize_chars(col('alt_name')))
+    
+    df_filtered = df_transformed.filter((col('name_normalized').isNotNull()) &
+                                        (col('name_normalized') != '') & 
+                                        (col('alt_name_normalized').isNotNull()) & 
+                                        (col('alt_name_normalized') != ''))
 
-    return df_transformed
+    return df_filtered
 
 def get_unique_characters(string: str
                           ) -> list:
