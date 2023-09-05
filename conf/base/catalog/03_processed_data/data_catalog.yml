@@ -30,9 +30,9 @@ confussion_matrix_model:
   save_args:
     format: png
 
-confussion_matrix_validation:
+confussion_matrix_baseline:
   type: matplotlib.MatplotlibWriter
-  filepath: data/08_reporting/${run_id}/confussion_matrix_validation.png
+  filepath: data/08_reporting/${run_id}/confussion_matrix_baseline.png
   save_args:
     format: png
 

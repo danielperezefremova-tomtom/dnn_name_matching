@@ -27,6 +27,9 @@ from keras.callbacks import History
 import matplotlib.pyplot as plt
 from sklearn.metrics import (confusion_matrix,
                             ConfusionMatrixDisplay)
+from .model import vectorize
+import keras
+
 
 plt.style.use('ggplot')
 
@@ -90,7 +93,7 @@ def train_model(X1_train: np.array,
     )
 
     train_loss = history.history['loss']
-    val_loss = history.history['loss']
+    val_loss = history.history['val_loss']
     train_acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
 
@@ -113,34 +116,43 @@ def train_model(X1_train: np.array,
     return model, fig
 
 def evaluate_model(
-    model, 
+    model:keras.Model, 
     X1_test: np.array,
     X2_test: np.array,
     target_test: np.array,
+    char_to_index: dict,
     parameters: dict):
 
     prediction_params = parameters['model_parameters']['prediction']
+    init_params = parameters['model_parameters']['init']
     threshold = prediction_params['threshold']
 
-    X1_test = model.vectorize(X1_test)
-    X2_test = model.vectorize(X2_test)
+    X1 = vectorize(
+            iterable=X1_test,
+            char_to_index_dict=char_to_index,
+            max_len=init_params['input_size'])
+    
+    X2 = vectorize(
+            iterable=X2_test,
+            char_to_index_dict=char_to_index,
+            max_len=init_params['input_size'])
 
-    pred = model.predict((X1_test, X2_test)).flatten()
+    pred = model.predict((X1, X2)).flatten()
     pred = pred > threshold
 
-    pred_baseline = np.array([fuzz.token_set_ratio(X1, X2) for X1, X2 in (X1_test, X2_test)])
+    pred_baseline = np.array([fuzz.token_set_ratio(X1, X2) for X1, X2 in zip(X1_test, X2_test)])
     pred_baseline = pred_baseline>.75
 
     true = target_test.flatten()
     true = true > threshold
 
     cm_model = confusion_matrix(true, pred)
-    disp_model = ConfusionMatrixDisplay(confusion_matrix=cm_model)
-    plt.close()
+    disp_model = ConfusionMatrixDisplay(confusion_matrix=cm_model).plot()
+    plt.grid(False)
 
     cm_baseline= confusion_matrix(true, pred_baseline)
-    disp_baseline = ConfusionMatrixDisplay(confusion_matrix=cm_baseline)
-    plt.close()
+    disp_baseline = ConfusionMatrixDisplay(confusion_matrix=cm_baseline).plot()
+    plt.grid(False)
 
     classification_log = pd.DataFrame(list(zip(X1_test, X2_test, true, pred, pred_baseline)), 
                                       columns=['name', 'alt_name', 'target', 'model_prediction', 'edit_prediction'])

@@ -38,7 +38,7 @@ def normalize_characters(text: str) -> str:
                                         char_2_remove)
     text = text.lower()
     text = text.strip()
-    text = unidecode(text)
+    # text = unidecode(text)
     text = text.translate(punctuation_table)
     text = re.sub(r' +', ' ', text)
     text = text.strip()

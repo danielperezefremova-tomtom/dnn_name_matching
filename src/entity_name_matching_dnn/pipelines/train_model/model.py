@@ -6,18 +6,46 @@ from keras.activations import relu
 import pickle 
 import typing
 
-def sparse_encoder(string: str, char_to_index_dict: dict, max_len: int) -> np.array:
+def sparse_encoder(
+        string: str,
+        char_to_index_dict: dict,
+        max_len: int) -> np.array:
 
     vector = np.zeros(max_len)
-    for ind, char in enumerate(string):
-        if ind>=max_len:
-            break
-        vector[ind] = char_to_index_dict[char]
+    try:
+        for ind, char in enumerate(string):
+            if ind>=max_len:
+                break
+            vector[ind] = char_to_index_dict[char]
+
+    except TypeError:
+        return np.zeros(max_len)
     return vector
 
-def encode_sparsed_list(iterable: iter, char_to_index_dict: dict, max_len: int) -> np.array:
+def encode_sparsed_list(
+        iterable: iter,
+        char_to_index_dict: dict,
+        max_len: int
+        ) -> np.array:
     
-    return np.array([sparse_encoder(string, char_to_index_dict, max_len) for string in iterable])
+    return np.array([
+        sparse_encoder(string, char_to_index_dict, max_len) for string in iterable
+        ])
+
+def vectorize(
+        iterable: typing.List[str],
+        char_to_index_dict: dict,
+        max_len: int) -> np.array:
+        
+        X = encode_sparsed_list(
+            iterable,
+            char_to_index_dict=char_to_index_dict,
+            max_len=max_len
+        )
+        X_expanded = np.expand_dims(X, axis=-1)
+        X_pad = tf.keras.preprocessing.sequence.pad_sequences(X_expanded)
+
+        return X_pad
 
 def get_conv_pool(x_input, max_len, suffix, n_grams=[2,3,5,8, 13], feature_maps=128):
     branches = []
@@ -48,7 +76,7 @@ class char2vecCNN:
             name='input_sequence')
         
         sequences_embeding = tf.keras.layers.Embedding(
-            input_dim=self.input_size,
+            input_dim=self.vocabulary_size,
             output_dim=self.embedding_dim,
             mask_zero=True
             )(input_sequence)
@@ -111,11 +139,26 @@ class char2vecCNN:
         callbacks):
         
         #TODO: Find a more elegant way of data preparation (keras loaders?)
-        X1 = self.vectorize(training_pairs[0])
-        X2 = self.vectorize(training_pairs[1])
+        X1 = vectorize(
+            iterable=training_pairs[0],
+            char_to_index_dict=self.char_to_index,
+            max_len=self.input_size)
+        
+        X2 = vectorize(
+            iterable=training_pairs[1],
+            char_to_index_dict=self.char_to_index,
+            max_len=self.input_size)
 
-        X1_val = self.vectorize(validation_pairs[0][0])
-        X2_val = self.vectorize(validation_pairs[0][1])
+        X1_val = vectorize(
+            iterable=validation_pairs[0][0],
+            char_to_index_dict=self.char_to_index,
+            max_len=self.input_size)
+        
+        X2_val = vectorize(
+            iterable=validation_pairs[0][1],
+            char_to_index_dict=self.char_to_index,
+            max_len=self.input_size)
+        
         target_val = validation_pairs[1]
         
         _callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)]+ callbacks
@@ -165,20 +208,6 @@ class char2vecCNN:
         model.model.compile(optimizer='adam', loss='mae')
     
         return model
-
-
-    def vectorize(self,
-                 iterable: typing.List[str]) -> np.array:
-        
-        X = encode_sparsed_list(
-            iterable,
-            char_to_index_dict=self.char_to_index,
-            max_len=self.input_size
-        )
-        X = np.expand_dims(X, axis=-1)
-        X_pad = tf.keras.preprocessing.sequence.pad_sequences(X)
-
-        return X_pad
     
     #TODO #1: Implement functions to debug the model intermediate layers (embeding, convolutions, representations, etc)
     #TODO #2: Implement functions to evalute the model performance   
