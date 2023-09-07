@@ -6,6 +6,10 @@ from keras.activations import relu
 import pickle 
 import typing
 
+from transformers import AutoTokenizer, TFAutoModel
+
+SEMANTIC_MODEL = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
+
 def sparse_encoder(
         string: str,
         char_to_index_dict: dict,
@@ -59,6 +63,19 @@ def get_conv_pool(x_input, max_len, suffix, n_grams=[2,3,5,8, 13], feature_maps=
         branches.append(branch)
     return branches
 
+
+class TFSentenceTransformer(tf.keras.layers.Layer):
+    def __init__(self, model_name_or_path, **kwargs):
+        super(TFSentenceTransformer, self).__init__()
+        # loads transformers model
+        self.model = TFAutoModel.from_pretrained(model_name_or_path, **kwargs)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, **kwargs)    
+
+    def call(self, inputs):
+        # runs model on inputs
+        model_output = self.model(self.tokenizer.encode(inputs))
+        return model_output
+
 class char2vecCNN:
     
     def __init__(self,
@@ -70,6 +87,7 @@ class char2vecCNN:
         self.input_size = input_size
         self.embedding_dim = embedding_dim
         self.vocabulary_size = len(char_to_index) + 1
+        self.transformer = TFSentenceTransformer(SEMANTIC_MODEL)
 
         input_sequence = tf.keras.layers.Input(
             shape=self.input_size,
@@ -94,6 +112,8 @@ class char2vecCNN:
 
         left_branch_features = self.features_layer(left_branch_input)
         right_branch_features = self.features_layer(right_branch_input)
+        # _, left_branch_semantic_embedding = self.transformer(left_branch_input)
+        # _, right_branch_semantic_embedding = self.transformer(right_branch_input)
 
         product_layer = tf.keras.layers.Multiply()(
             [left_branch_features, right_branch_features]
@@ -105,7 +125,12 @@ class char2vecCNN:
             [left_branch_features, right_branch_features]
             )
         representation = tf.keras.layers.Concatenate(axis=1)(
-            [concat_layer, product_layer, difference_layer,]
+            [concat_layer,
+             product_layer,
+             difference_layer,
+            #  left_branch_semantic_embedding,
+            #  right_branch_semantic_embedding
+            ]
             )
         
         x = tf.keras.layers.Dense(1024, activation='relu')(representation)
@@ -171,43 +196,6 @@ class char2vecCNN:
             epochs=max_epochs,
             validation_data=((X1_val, X2_val), target_val),
             callbacks=_callbacks)
-
-
-    def save_model(self, path_to_model):
-        '''
-        Saves trained model to directory.
-    
-        :param path_to_model: str, path to save model.
-        '''
-    
-        if not os.path.exists(path_to_model):
-            os.makedirs(path_to_model)
-        
-        self.model.save_weights(path_to_model + '/weights.h5')
-    
-        with open(path_to_model + '/model.pkl', 'wb') as f:
-            pickle.dump([self.embedding_dim, self.char_to_index], f, protocol=2)
-
-
-    def load_model(self, path):
-        '''
-        Loads trained model.
-    
-        :param path: loads model from `path`.
-    
-        :return c2v_model: Chars2Vec object, trained model.
-        '''
-        path_to_model = path
-    
-        with open(path_to_model + '/model.pkl', 'rb') as f:
-            structure = pickle.load(f)
-            embedding_dim, char_to_index = structure[0], structure[1]
-    
-        model = char2vecCNN(embedding_dim=embedding_dim, char_to_index=char_to_index)
-        model.model.load_weights(path_to_model + '/weights.h5')
-        model.model.compile(optimizer='adam', loss='mae')
-    
-        return model
     
     #TODO #1: Implement functions to debug the model intermediate layers (embeding, convolutions, representations, etc)
     #TODO #2: Implement functions to evalute the model performance   

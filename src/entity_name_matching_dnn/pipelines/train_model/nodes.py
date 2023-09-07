@@ -1,27 +1,6 @@
-import pyspark 
-import re
-from pyspark.sql.types import ArrayType, StringType, FloatType
-from unidecode import unidecode
-from pyspark.sql.functions import (col, 
-                                   udf, 
-                                   array_distinct, 
-                                   concat, 
-                                   flatten, 
-                                   collect_set, 
-                                   lit,
-                                   rand,
-                                   row_number,
-                                   explode,
-                                   split
-                                   )
-from functools import reduce
-from pyspark.sql.window import Window
 from fuzzywuzzy import fuzz
-import typing
-import logging
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
 from .model import char2vecCNN
 from keras.callbacks import History
 import matplotlib.pyplot as plt
@@ -141,7 +120,7 @@ def evaluate_model(
     pred = pred > threshold
 
     pred_baseline = np.array([fuzz.token_set_ratio(X1, X2) for X1, X2 in zip(X1_test, X2_test)])
-    pred_baseline = pred_baseline>.75
+    pred_baseline = pred_baseline>75
 
     true = target_test.flatten()
     true = true > threshold

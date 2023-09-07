@@ -9,10 +9,6 @@ from pyspark.sql.functions import (col,
                                    flatten, 
                                    collect_set, 
                                    lit,
-                                   rand,
-                                   row_number,
-                                   explode,
-                                   split
                                    )
 from functools import reduce
 from pyspark.sql.window import Window
@@ -22,29 +18,9 @@ import logging
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from ...utils.utils import normalize_characters
 
 logger = logging.getLogger("kedro")
-
-
-def normalize_characters(text: str) -> str:
-    
-    if text is None:
-        return ''
-
-    strange_char_space = r"!#$%&()*+,./:;<=>?@[\]^_{|}~ºª®-"
-    char_2_remove = "\"'^`"
-    space_mask = "                                "
-    punctuation_table = str.maketrans(strange_char_space, space_mask,
-                                        char_2_remove)
-    text = text.lower()
-    text = text.strip()
-    # text = unidecode(text)
-    text = text.translate(punctuation_table)
-    text = re.sub(r' +', ' ', text)
-    text = text.strip()
-    text = text.lower()
-
-    return text
 
 def normalize_strings(df: pyspark.sql.DataFrame
               ) -> pyspark.sql.DataFrame:
@@ -184,20 +160,23 @@ def get_response(df_response: typing.Dict[str, pyspark.sql.DataFrame],
 
 def generate_train_test_split(df: pd.DataFrame,
                                  parameters:dict
-                                 ) -> np.array:
+                                 ) -> pd.DataFrame:
     
-    split_params = parameters['split_params']
-    test_size = split_params['test_size']
-    stratification_columns = split_params['stratification_columns']
-    validation_size = split_params['validation_size']
+    """Produces a 60%, 20%, 20% split for training, validation and test sets.
 
-    train_split = df.groupby(stratification_columns).apply(lambda x: x.sample(frac=1-test_size))
-    test_split = df.loc[set(df.index) - set(train_split.index.get_level_values(1))]
+    Args:
+        df (pd.DataFrame): 
 
-    validation_split = test_split.groupby(stratification_columns).apply(lambda x: x.sample(frac=1-validation_size))
-    train_split = train_split.loc[set(train_split.index) - set(validation_split.index.get_level_values(1))]
+    Returns:
+        np.array: pd.DataFrame
+    """
+    np.random.seed(0)
+    train, validation, test = np.split(df.sample(frac=1),
+                                 [int(.6*len(df)), int(.8*len(df))])
 
-    return train_split, test_split, validation_split
+    logger.info(f'Generated: {train.shape[0]} train pairs | {test.shape[0]} test pairs | {validation.shape[0]} val pairs')
+
+    return train, test, validation
     
 
 

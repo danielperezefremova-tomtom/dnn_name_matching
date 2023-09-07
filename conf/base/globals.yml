@@ -1,9 +1,9 @@
-run_id: 20230901-test-0010
+run_id: multilingual-01
 models_path: data/06_models/${run_id}
 temporal_path: data/tmp
 intermediate_data_path: data/02_intermediate
 
-country: rus
+country: deu
 provider: om
 sample_round: cc
 

@@ -67,6 +67,3 @@ om_schema_query: |
   WHERE
       schema_name LIKE '%\_{country}'
   LIMIT 1
-
-
-pois_number: 50000
