@@ -19,7 +19,7 @@ data/**
 
 ##########################
 # Common files
-
+notebooks/
 # IntelliJ
 .idea/
 *.iml
