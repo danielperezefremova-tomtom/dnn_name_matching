@@ -5,8 +5,7 @@ from keras.callbacks import History
 import matplotlib.pyplot as plt
 from sklearn.metrics import (confusion_matrix,
                              ConfusionMatrixDisplay)
-from ...models.cnn.model import vectorize
-from ...models.cnn.model import char2vecCNN
+from ...models.cnn.char2veccnn import char2vecCNN
 
 import keras
 
@@ -114,7 +113,7 @@ def evaluate_model(
     pred = pred > threshold
 
     # TODO Edit distance need preprocessing before evaluation
-    
+
     pred_baseline = np.array([fuzz.token_set_ratio(X1_test, X2_test)
                              for X1_test, X2_test in zip(X1_test, X2_test)])
     pred_baseline = pred_baseline > 75
