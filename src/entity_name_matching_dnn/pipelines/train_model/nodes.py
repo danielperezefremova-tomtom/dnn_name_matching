@@ -1,22 +1,24 @@
 from fuzzywuzzy import fuzz
 import pandas as pd
 import numpy as np
-from .model import char2vecCNN
 from keras.callbacks import History
 import matplotlib.pyplot as plt
 from sklearn.metrics import (confusion_matrix,
-                            ConfusionMatrixDisplay)
-from .model import vectorize
+                             ConfusionMatrixDisplay)
+from ...models.cnn.model import vectorize
+from ...models.cnn.model import char2vecCNN
+
 import keras
 
 
 plt.style.use('ggplot')
 
+
 def load_data(train_data: pd.DataFrame,
               test_data: pd.DataFrame,
-            validation_data: pd.DataFrame,
-            vocabulary: dict):
-    
+              validation_data: pd.DataFrame,
+              vocabulary: dict):
+
     char_to_index = vocabulary
 
     X1_train = train_data['name_normalized'].values
@@ -42,22 +44,23 @@ def load_data(train_data: pd.DataFrame,
             target_test,
             char_to_index]
 
+
 def train_model(X1_train: np.array,
-        X2_train: np.array,
-        target_train: np.array,
-        X1_val: np.array,
-        X2_val: np.array,
-        target_val: np.array,
-        char_to_index: dict,
-        parameters: dict):
+                X2_train: np.array,
+                target_train: np.array,
+                X1_val: np.array,
+                X2_val: np.array,
+                target_val: np.array,
+                char_to_index: dict,
+                parameters: dict):
 
     init_parameters = parameters['model_parameters']['init']
-
     model = char2vecCNN(
-        input_size=init_parameters['input_size'],
-        embedding_dim = init_parameters['input_size'],
-        char_to_index = char_to_index)
-    
+        max_sequence_length=init_parameters['max_sequence_length'],
+        embedding_dim=init_parameters['embedding_dim'],
+        max_vocabulary_size=init_parameters['max_vocabulary_size'],
+        char_to_index=char_to_index)
+
     fit_parameters = parameters['model_parameters']['fit']
     history = History()
 
@@ -76,7 +79,7 @@ def train_model(X1_train: np.array,
     train_acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
 
-    fig, ax = plt.subplots(1, 2, figsize=(10,5))
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
     ax[0].plot(train_loss)
     ax[0].plot(val_loss)
@@ -94,33 +97,27 @@ def train_model(X1_train: np.array,
 
     return model, fig
 
+
 def evaluate_model(
-    model:keras.Model, 
-    X1_test: np.array,
-    X2_test: np.array,
-    target_test: np.array,
-    char_to_index: dict,
-    parameters: dict):
+        model: keras.Model,
+        X1_test: np.array,
+        X2_test: np.array,
+        target_test: np.array,
+        char_to_index: dict,
+        parameters: dict):
 
     prediction_params = parameters['model_parameters']['prediction']
     init_params = parameters['model_parameters']['init']
     threshold = prediction_params['threshold']
 
-    X1 = vectorize(
-            iterable=X1_test,
-            char_to_index_dict=char_to_index,
-            max_len=init_params['input_size'])
-    
-    X2 = vectorize(
-            iterable=X2_test,
-            char_to_index_dict=char_to_index,
-            max_len=init_params['input_size'])
-
-    pred = model.predict((X1, X2)).flatten()
+    pred = model.predict((X1_test, X2_test)).flatten()
     pred = pred > threshold
 
-    pred_baseline = np.array([fuzz.token_set_ratio(X1, X2) for X1, X2 in zip(X1_test, X2_test)])
-    pred_baseline = pred_baseline>75
+    # TODO Edit distance need preprocessing before evaluation
+    
+    pred_baseline = np.array([fuzz.token_set_ratio(X1_test, X2_test)
+                             for X1_test, X2_test in zip(X1_test, X2_test)])
+    pred_baseline = pred_baseline > 75
 
     true = target_test.flatten()
     true = true > threshold
@@ -129,14 +126,11 @@ def evaluate_model(
     disp_model = ConfusionMatrixDisplay(confusion_matrix=cm_model).plot()
     plt.grid(False)
 
-    cm_baseline= confusion_matrix(true, pred_baseline)
+    cm_baseline = confusion_matrix(true, pred_baseline)
     disp_baseline = ConfusionMatrixDisplay(confusion_matrix=cm_baseline).plot()
     plt.grid(False)
 
-    classification_log = pd.DataFrame(list(zip(X1_test, X2_test, true, pred, pred_baseline)), 
+    classification_log = pd.DataFrame(list(zip(X1_test, X2_test, true, pred, pred_baseline)),
                                       columns=['name', 'alt_name', 'target', 'model_prediction', 'edit_prediction'])
 
     return disp_model.figure_, disp_baseline.figure_, classification_log
-
-
-

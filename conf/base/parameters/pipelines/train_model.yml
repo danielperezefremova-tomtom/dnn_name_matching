@@ -1,7 +1,8 @@
 model_parameters:
   init:
-    embeding_size: 150
-    input_size: 100
+    embedding_dim: 150
+    max_sequence_length: 100
+    max_vocabulary_size: 1000
   fit:
     max_epochs: 100
     patience: 2
