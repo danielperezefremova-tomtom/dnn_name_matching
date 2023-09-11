@@ -22,5 +22,5 @@ custom_credentials:
   user: ${user}
   password: ${password}
 
-pois_number: 50000
+pois_number: 100000
   

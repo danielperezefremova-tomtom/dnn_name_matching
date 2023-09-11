@@ -1,8 +1,8 @@
 import re
-import unidecode
+from unidecode import unidecode
 
 def normalize_characters(text: str) -> str:
-    
+
     if text is None:
         return ''
 
@@ -10,7 +10,7 @@ def normalize_characters(text: str) -> str:
     char_2_remove = "\"'^`"
     space_mask = "                                "
     punctuation_table = str.maketrans(strange_char_space, space_mask,
-                                        char_2_remove)
+                                      char_2_remove)
     text = text.lower()
     text = text.strip()
     # text = unidecode(text)
@@ -21,8 +21,9 @@ def normalize_characters(text: str) -> str:
 
     return text
 
+
 def legacy_normalize_characters(text: str) -> str:
-    
+
     if text is None:
         return ''
 
@@ -30,7 +31,7 @@ def legacy_normalize_characters(text: str) -> str:
     char_2_remove = "\"'^`"
     space_mask = "                                "
     punctuation_table = str.maketrans(strange_char_space, space_mask,
-                                        char_2_remove)
+                                      char_2_remove)
     text = text.lower()
     text = text.strip()
     text = unidecode(text)

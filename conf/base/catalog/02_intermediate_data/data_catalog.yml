@@ -1,6 +1,6 @@
-df_normalized_pairs:
+df_normalized:
   type: spark.SparkDataSet
-  filepath: data/02_intermediate/${run_id}/normalized_pairs
+  filepath: data/02_intermediate/${run_id}/normalized_names
   file_format: parquet
   save_args:
     header: True
@@ -11,9 +11,44 @@ df_normalized_pairs:
     header: True
     infer_schema: True
     
-df_training_data:
-  type: pandas.CSVDataSet
-  filepath: data/02_intermediate/${run_id}/training_data.csv
+df_positives:
+  type: spark.SparkDataSet
+  filepath: data/02_intermediate/${run_id}/positives.parquet
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True
+
+df_negatives:
+  type: spark.SparkDataSet
+  filepath: data/02_intermediate/${run_id}/negatives.parquet
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True
+
+df_training:
+  type: spark.SparkDataSet
+  filepath: data/02_intermediate/${run_id}/training.parquet
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True
 
 query_schema:
   type: text.TextDataSet

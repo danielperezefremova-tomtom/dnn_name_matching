@@ -9,6 +9,8 @@ from pyspark.sql.functions import (col,
                                    flatten, 
                                    collect_set, 
                                    lit,
+                                   row_number,
+                                   rand
                                    )
 from functools import reduce
 from pyspark.sql.window import Window
@@ -64,22 +66,27 @@ def generate_training_examples(df: pyspark.sql.DataFrame
     
     #TODO: Implement more sophisticated negative examples
 
-    positive_examples = df.toPandas()
-    positive_examples['target'] = 1
+    window1 = Window.partitionBy('country').orderBy(rand(seed=0))
+    window2 = Window.partitionBy('country').orderBy(rand(seed=1))
 
-    negative_examples = positive_examples.copy()
-    negative_examples['target'] = 0
+    df_positives = df.withColumn("index", row_number().over(window1)) \
+                    .withColumn('target', lit(1))
+    df_negatives = df.withColumn("index", row_number().over(window2)) \
+                    .withColumn('target', lit(0))
 
-    np.random.seed(0)
-    indexes = positive_examples.index.tolist()
-    np.random.shuffle(indexes)
+    return df_positives, df_negatives
 
-    negative_examples['alt_name'] = positive_examples.loc[indexes, 'alt_name'].values
-    negative_examples['alt_name_normalized'] = positive_examples.loc[indexes, 'alt_name_normalized'].values
+def generate_negative_examples(df_positives: pyspark.sql.DataFrame, 
+                               df_negatives: pyspark.sql.DataFrame, 
+                               ) -> pd.DataFrame:
+    
+    #TODO: Implement more sophisticated negative examples
 
-    training_data = pd.concat([positive_examples, negative_examples], axis=0)
+    df_negatives = df_negatives.drop('alt_name', 'alt_name_normalized')
+    df_negatives = df_negatives.join(df_positives.select('index', 'alt_name', 'alt_name_normalized'), on='index')
+    df_training = df_positives.unionByName(df_negatives)
 
-    return training_data
+    return df_training
 
 def load_query_schema(parameters: typing.Dict) -> str:
     """
@@ -154,11 +161,12 @@ def get_response(df_response: typing.Dict[str, pyspark.sql.DataFrame],
             )
     
     df_response = df_response.withColumn('run_id', lit(run_id))
+    logging.info(f'Generated {df_response.count()} POIs for names sample')
     
     return df_response
 
 
-def generate_train_test_split(df: pd.DataFrame,
+def generate_train_test_split(df: pyspark.sql.DataFrame,
                                  parameters:dict
                                  ) -> pd.DataFrame:
     
@@ -170,9 +178,11 @@ def generate_train_test_split(df: pd.DataFrame,
     Returns:
         np.array: pd.DataFrame
     """
+
+    df_droped = df.toPandas().dropna(subset=['name', 'alt_name', 'name_normalized', 'alt_name_normalized'])
     np.random.seed(0)
-    train, validation, test = np.split(df.sample(frac=1),
-                                 [int(.6*len(df)), int(.8*len(df))])
+    train, validation, test = np.split(df_droped.sample(frac=1),
+                                 [int(.6*len(df_droped)), int(.8*len(df_droped))])
 
     logger.info(f'Generated: {train.shape[0]} train pairs | {test.shape[0]} test pairs | {validation.shape[0]} val pairs')
 

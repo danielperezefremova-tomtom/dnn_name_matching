@@ -7,10 +7,11 @@ from .nodes import  (
                      get_schema_name,
                      build_poi_spatial_query,
                      get_response,
-                     generate_train_test_split
+                     generate_train_test_split,
+                     generate_negative_examples
                     )
 
-
+from pyspark.sql.window import Window
 
 def create_pipeline(**kwargs) -> Pipeline:
 
@@ -46,24 +47,30 @@ def create_pipeline(**kwargs) -> Pipeline:
             node(
                 func=normalize_strings,
                 inputs=["df_raw_names_sample"],
-                outputs="df_normalized_pairs",
+                outputs="df_normalized",
                 name="normalize_pairs",
             ),
             node(
                 func=compute_chars_vocabulary,
-                inputs=["df_normalized_pairs"],
+                inputs=["df_normalized"],
                 outputs="vocabulary_file",
                 name="compute_vocabulary",
             ),
             node(
                 func=generate_training_examples,
-                inputs=["df_normalized_pairs"],
-                outputs="df_training_data",
+                inputs=["df_normalized"],
+                outputs=["df_positives", "df_negatives"],
                 name="generate_examples",
             ),
             node(
+                func=generate_negative_examples,
+                inputs=["df_positives", "df_negatives"],
+                outputs="df_training",
+                name="generate_negative_examples",
+            ),
+            node(
                 func=generate_train_test_split,
-                inputs=["df_training_data", "parameters"],
+                inputs=["df_training", "parameters"],
                 outputs=["train", "test", "validation"],
                 name="generate_train_test_split",
             ),

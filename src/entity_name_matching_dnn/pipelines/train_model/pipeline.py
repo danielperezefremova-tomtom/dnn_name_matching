@@ -47,7 +47,6 @@ def create_pipeline(**kwargs) -> Pipeline:
                         "X1_test",
                         "X2_test",
                         "target_test",
-                        "char_to_index",
                         "parameters"],
                 outputs=["confussion_matrix_model",
                          "confussion_matrix_baseline",

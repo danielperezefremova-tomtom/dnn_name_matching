@@ -3,9 +3,10 @@ model_parameters:
     embedding_dim: 150
     max_sequence_length: 100
     max_vocabulary_size: 1000
+    transformer_model_path: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
   fit:
     max_epochs: 100
     patience: 2
     batch_size: 128
   prediction:
-    threshold: 0.5
+    threshold: 0.75
