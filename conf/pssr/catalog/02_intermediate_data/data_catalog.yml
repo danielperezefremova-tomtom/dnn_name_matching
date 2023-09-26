@@ -1,0 +1,87 @@
+df_normalized:
+  type: spark.SparkDataSet
+  filepath: ${data_path}/samples/normalized_sample
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True
+    
+df_positives:
+  type: spark.SparkDataSet
+  filepath: ${data_path}/training/positive_examples
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True
+
+df_negatives:
+  type: spark.SparkDataSet
+  filepath: ${data_path}/training/negative_examples
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True
+
+df_training:
+  type: spark.SparkDataSet
+  filepath: ${data_path}/training/training_examples
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True
+
+query_schema:
+  type: text.TextDataSet
+  filepath: ${temporal_path}/${run_id}/${country}/queries/schema/query_schema.txt
+
+df_schema:
+  type: IncrementalDataSet
+  dataset: entity_name_matching_dnn.extras.datasets.jdbc_query_dataset.SparkJDBCQueryDataSet
+  path: ${temporal_path}/${run_id}/${country}/queries/schema
+  filename_suffix: _schema.txt
+  credentials: generic
+
+spatial_query:
+  type: kedro.extras.datasets.text.TextDataSet
+  filepath: ${temporal_path}/${run_id}/${country}/queries/spatial_queries/spatial_query.txt
+
+df_response:
+  type: IncrementalDataSet
+  dataset: 
+    type: entity_name_matching_dnn.extras.datasets.jdbc_query_dataset.SparkJDBCQueryDataSet
+  path: ${temporal_path}/${run_id}/${country}/queries/spatial_queries/
+  filename_suffix: .txt
+  credentials: generic
+
+df_raw_names_sample:
+  type: spark.SparkDataSet
+  filepath: ${data_path}/samples/raw_names_sample
+  file_format: parquet
+  save_args:
+    header: True
+    partitionOverwriteMode: dynamic
+    mode: overwrite
+    partitionBy: [ "run_id", "country" ]
+  load_args:
+    header: True
+    infer_schema: True

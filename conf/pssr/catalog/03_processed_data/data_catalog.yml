@@ -1,0 +1,41 @@
+vocabulary_file:
+  type: json.JSONDataSet
+  filepath: ${dbfs_preffix}${data_path}/model_input/${run_id}/vocabulary/vocab.json
+
+train:
+  type: pandas.CSVDataSet
+  filepath: ${dbfs_preffix}${data_path}/model_input/${run_id}/train.csv
+
+test:
+  type: pandas.CSVDataSet
+  filepath: ${dbfs_preffix}${data_path}/model_input/${run_id}/test.csv
+
+validation:
+  type: pandas.CSVDataSet
+  filepath: ${dbfs_preffix}${data_path}/model_input/${run_id}/validation.csv
+
+tensorflow_model:
+  type: entity_name_matching_dnn.extras.datasets.tensorflow_model_dataset.TensorflowModelFile
+  filepath: ${dbfs_preffix}${data_path}/trained_model/char2vecCNN.keras
+
+training_history_loss:
+  type: matplotlib.MatplotlibWriter
+  filepath: ${dbfs_preffix}${data_path}/model_output/training_history_loss.png
+  save_args:
+    format: png
+
+confussion_matrix_model:
+  type: matplotlib.MatplotlibWriter
+  filepath: ${dbfs_preffix}${data_path}/model_output/confussion_matrix_model.png
+  save_args:
+    format: png
+
+confussion_matrix_baseline:
+  type: matplotlib.MatplotlibWriter
+  filepath: ${dbfs_preffix}${data_path}/model_output/confussion_matrix_baseline.png
+  save_args:
+    format: png
+
+classification_logs:
+  type: pandas.CSVDataSet
+  filepath: ${dbfs_preffix}${data_path}/model_output/classification_logs.csv

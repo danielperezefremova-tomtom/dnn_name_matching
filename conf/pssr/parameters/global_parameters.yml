@@ -1,0 +1,26 @@
+run_id: ${run_id}
+country: ${country}
+provider: ${provider}
+sample_round: ${sample_round}
+
+query_parameters:
+  om:
+    schema_query: om_schema_query
+    data_query: om_data_query
+  tt:
+    schema_query: tt_schema_query
+    data_query: tt_data_query
+  osm:
+    schema_query: osm_schema_query
+    data_query: om_data_query
+
+has_custom_credentials: ${has_custom_credentials}
+custom_credentials:
+  host: ${host}
+  port: ${port}
+  database: ${database}
+  user: ${user}
+  password: ${password}
+
+pois_number: 100000
+  

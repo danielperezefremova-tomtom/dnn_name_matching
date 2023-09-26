@@ -1,0 +1,14 @@
+data_path: /mnt/bronze@adlsmapsanalyticspoi.dfs.core.windows.net/research/name_matching/cnn
+dbfs_preffix: dbfs
+
+# params overwritten in production
+run_id: russian-exp-02
+temporal_path: data/tmp
+country: rus
+provider: om
+has_custom_credentials: True
+database: ""
+port: ""
+user: ""
+host: '10.137.173.69'
+password: ""

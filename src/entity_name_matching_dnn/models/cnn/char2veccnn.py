@@ -145,18 +145,21 @@ class char2vecCNN:
 
         output = tf.keras.layers.Dense(1, activation='sigmoid')(x)
 
-        self.model = tf.keras.models.Model(
-            inputs=[left_branch_input, right_branch_input],
-            outputs=output
-        )
+        mirrored_strategy = tf.distribute.MirroredStrategy()
+        with mirrored_strategy.scope():
 
-        self.model.compile(
-            loss='binary_crossentropy',
-            optimizer='adam',
-            metrics=['accuracy',
-                     tf.keras.metrics.Precision(),
-                     tf.keras.metrics.Recall()]
-        )
+            self.model = tf.keras.models.Model(
+                inputs=[left_branch_input, right_branch_input],
+                outputs=output
+            )
+
+            self.model.compile(
+                loss='binary_crossentropy',
+                optimizer='adam',
+                metrics=['accuracy',
+                        tf.keras.metrics.Precision(),
+                        tf.keras.metrics.Recall()]
+            )
 
     def fit(self,
             training_pairs,
@@ -178,7 +181,7 @@ class char2vecCNN:
 
         _callbacks = [tf.keras.callbacks.EarlyStopping(
             monitor='val_loss', patience=patience)] + callbacks
-
+        
         self.model.fit(
             (X1, X2),
             target,
