@@ -450,13 +450,6 @@ pytoolconfig[global]==1.2.5
     # via rope
 pytz==2023.3
     # via pandas
-pywin32==306
-    # via jupyter-core
-pywinpty==2.0.11
-    # via
-    #   jupyter-server
-    #   jupyter-server-terminals
-    #   terminado
 pyyaml==6.0.1
     # via
     #   cookiecutter

@@ -10,5 +10,5 @@ has_custom_credentials: True
 database: ""
 port: ""
 user: ""
-host: '10.137.173.69'
+host: ""
 password: ""

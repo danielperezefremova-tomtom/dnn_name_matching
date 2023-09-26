@@ -3,14 +3,15 @@ from the Kedro defaults. For further information, including these default values
 https://kedro.readthedocs.io/en/stable/kedro_project_setup/settings.html."""
 
 # Instantiated project hooks.
-from entity_name_matching_dnn.hooks import SparkHooks, AzureSecretsHook
+from entity_name_matching_dnn.hooks import SparkHooks, AzureSecretsHook, ParamsToBoolHook
 from entity_name_matching_dnn.context import ProjectContext
 from kedro.config import TemplatedConfigLoader
 
 import os 
 
 HOOKS = (SparkHooks(),
-         AzureSecretsHook())
+         AzureSecretsHook(),
+         ParamsToBoolHook())
 
 # Installed plugins for which to disable hook auto-registration.
 # DISABLE_HOOKS_FOR_PLUGINS = ("kedro-viz",)

@@ -7,7 +7,8 @@ from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
 import os
 from kedro.config import MissingConfigException
-
+from typing import Any, Dict
+from kedro.io import DataCatalog, MemoryDataSet
 
 DEFAULT_VAULT = "KedroSecrets"
 log = logging.getLogger("kedro")
@@ -86,3 +87,48 @@ class AzureSecretsHook:
                     continue
                 
         context.config_loader["credentials"]["generic"] = credentials_dict
+
+class ParamsToBoolHook:
+    """
+    Extends CLI params parsing functionality to allow bool parsing.
+
+    Example:
+
+    .. code-block:: bash
+
+       kedro run --params has_custom_credentials:True
+    """
+
+    def __init__(self):
+        self.dict_extra_params: Dict[str, Any] = {}
+
+    @hook_impl
+    def before_pipeline_run(
+        self, run_params: Dict[str, Any], catalog: DataCatalog
+    ) -> None:
+        for param, param_value in run_params.items():
+            try:
+                transformed_param_value = (
+                    True
+                    if param_value.lower() == "true"
+                    else False
+                    if param_value.lower() == "false"
+                    else param_value
+                )
+            except AttributeError:
+                transformed_param_value = param_value
+
+            self.dict_extra_params[param] = transformed_param_value
+
+        if run_params == self.dict_extra_params:
+            return None
+
+        parameters = catalog.load("parameters")
+
+        for param, param_value in self.dict_extra_params.items():
+            catalog.add_feed_dict(
+                {f"params:{param}": MemoryDataSet(param_value)}, replace=True
+            )
+            parameters[param] = param_value
+
+        catalog.add_feed_dict({"parameters": parameters}, replace=True)
